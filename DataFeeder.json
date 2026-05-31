@@ -1,0 +1,291 @@
+{
+  "name": "DataFeeder",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1tP4ZP1sRazn5YpKVNpE2c4smv5btGkgz",
+          "mode": "list",
+          "cachedResultName": "01_ENTRADA_CSV",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1tP4ZP1sRazn5YpKVNpE2c4smv5btGkgz"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1440,
+        -480
+      ],
+      "id": "97c72444-fe9e-425f-b1ec-18685d0f0f4b",
+      "name": "Radar: Entrada CSV",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "yVhaKfogBdoJnwp4",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1232,
+        -480
+      ],
+      "id": "9e6d712f-112f-4324-acf9-9dbfa028d3f1",
+      "name": "Descarga Binaria",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "yVhaKfogBdoJnwp4",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1024,
+        -480
+      ],
+      "id": "8c102389-dd80-4bcc-baba-2165c6939c6e",
+      "name": "Traductor CSV a JSON"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1RbagnrZxjzL8lhjunVs3xNZSdifFVUYDrxXWzYNE-ak",
+          "mode": "list",
+          "cachedResultName": "Dataset_CC_v02",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RbagnrZxjzL8lhjunVs3xNZSdifFVUYDrxXWzYNE-ak/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "daily_activity_performance",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RbagnrZxjzL8lhjunVs3xNZSdifFVUYDrxXWzYNE-ak/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "FECHA": "={{ $json.FECHA }}",
+            "MES-AÑO": "={{ $json[\"MES-AÑO\"] }}",
+            "WORKING DAY": "={{ $json[\"WORKING DAY\"] }}",
+            "CLIENTES LLAMADOS": "={{ $json[\"CLIENTES LLAMADOS\"] }}",
+            "CLIENTES CONTACTADOS": "={{ $json[\"CLIENTES CONTACTADOS\"] }}",
+            "VENTAS": "={{ $json.VENTAS }}",
+            "IMPORTE TOTAL": "={{ $json[\"IMPORTE TOTAL\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "FECHA",
+              "displayName": "FECHA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "MES-AÑO",
+              "displayName": "MES-AÑO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "WORKING DAY",
+              "displayName": "WORKING DAY",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CLIENTES LLAMADOS",
+              "displayName": "CLIENTES LLAMADOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CLIENTES CONTACTADOS",
+              "displayName": "CLIENTES CONTACTADOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "VENTAS",
+              "displayName": "VENTAS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "IMPORTE TOTAL",
+              "displayName": "IMPORTE TOTAL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -816,
+        -480
+      ],
+      "id": "0c798ee1-dcd6-4ecc-99f1-00f9e3526480",
+      "name": "Volcado a Base de Datos",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ytB9l9oudxVNjeFr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Radar: Entrada CSV').item.json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1EVy-y3taBDTETFFXgsLYQJuD9wkkbp4V",
+          "mode": "list",
+          "cachedResultName": "02_PROCESADOS",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1EVy-y3taBDTETFFXgsLYQJuD9wkkbp4V"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -608,
+        -480
+      ],
+      "id": "8115d01e-d8d7-4a01-a731-30c088749835",
+      "name": "Limpiador: Mover a Procesados",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "yVhaKfogBdoJnwp4",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Radar: Entrada CSV": {
+      "main": [
+        [
+          {
+            "node": "Descarga Binaria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descarga Binaria": {
+      "main": [
+        [
+          {
+            "node": "Traductor CSV a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traductor CSV a JSON": {
+      "main": [
+        [
+          {
+            "node": "Volcado a Base de Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Volcado a Base de Datos": {
+      "main": [
+        [
+          {
+            "node": "Limpiador: Mover a Procesados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "38f7566e-c571-4d4c-8583-9110f7f6fbec",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2228172b29521361ab6cd980d0a4f4f89de13d7cbfe2ba31a5619b083daffd99"
+  },
+  "id": "GukGrlDfCiklw390",
+  "tags": []
+}

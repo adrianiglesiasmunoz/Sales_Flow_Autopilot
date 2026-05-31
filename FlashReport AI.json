@@ -1,0 +1,244 @@
+{
+  "name": "FlashReport AI",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 24
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1RbagnrZxjzL8lhjunVs3xNZSdifFVUYDrxXWzYNE-ak",
+          "mode": "list",
+          "cachedResultName": "Dataset_CC_v02",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RbagnrZxjzL8lhjunVs3xNZSdifFVUYDrxXWzYNE-ak/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "daily_activity_performance",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RbagnrZxjzL8lhjunVs3xNZSdifFVUYDrxXWzYNE-ak/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        -320
+      ],
+      "id": "d4568d75-24a2-49d8-b2d3-22736b137828",
+      "name": "Fuente: Ventas Diarias",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "ybw6WRlRueOp4U1z",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $json.FECHA.toDateTime('excel').plus({hours: 12}) }}",
+        "format": "yyyy-MM-dd",
+        "outputFieldName": "fecha_normalizada",
+        "options": {
+          "includeInputFields": true
+        }
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        -928,
+        -240
+      ],
+      "id": "b19a32be-1d43-4774-a5be-0c9156d9acfc",
+      "name": "Normalizar Fecha"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "205ced26-111b-4e3a-b994-51e16672d2f0",
+              "leftValue": "={{ $json.fecha_normalizada }}",
+              "rightValue": "={{ $today.minus({months: 5}) }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -720,
+        -240
+      ],
+      "id": "0c1acfd7-00f6-42c7-8e16-7898be99bd26",
+      "name": "Filtro Histórico (3M)"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        -240
+      ],
+      "id": "a172749f-f601-4d16-9818-1d08fe37c881",
+      "name": "Empaquetador JSON"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "=user",
+              "content": "=Actúa como un motor de reportes riguroso.\nTienes un dataset con una columna clave: 'WORKING DAY' (número de día hábil).\n\nTU OBJETIVO:\nGenerar el reporte HTML final calculando los acumulados basándote estrictamente en la columna 'WORKING DAY'.\n\nINSTRUCCIONES PARA CODE INTERPRETER (Python Pandas):\n\n1. PREPARACIÓN:\n   - Carga el JSON. Convierte 'FECHA' a datetime (dayfirst=True).\n   - Asegúrate de que 'WORKING DAY' sea numérico.\n   - IMPORTANTE: Ordena el dataframe explícitamente por FECHA ascendente. (Esto asegura que la última fila sea siempre la fecha más reciente real).\n\n2. IDENTIFICAR EL PUNTO DE CORTE (\"HOY\"):\n   - Toma la ÚLTIMA fila del dataset ya ordenado.\n   - Usa la fecha de esa fila para el Título del reporte.\n   - Extrae su valor de 'WORKING DAY'. Llamaremos a este valor \"N\".\n   - Extrae las métricas de ese día (Ventas, Llamados, etc).\n\n3. CÁLCULO DE ACUMULADOS (Lógica Exacta):\n   - Define 4 periodos: Mes Actual, Mes Pasado, Hace 2 Meses, Hace 3 Meses.\n   - Para cada mes, realiza esta suma condicional exacta:\n     SUMA de 'VENTAS' donde:\n     (Mes == Mes_Analizado) Y ('WORKING DAY' <= N)\n   \n   *Nota: No uses .head(). Usa el filtro numérico: df[df['WORKING DAY'] <= N]. Esto garantiza que comparamos peras con peras.*\n\n4. CÁLCULO DE TENDENCIA:\n   - Calcula el promedio de las sumas de los 3 meses anteriores (M-1, M-2, M-3).\n   - Compara la suma del Mes Actual contra ese promedio.\n\n5. LÓGICA DE VISUALIZACIÓN (Colores):\n   - Compara [SUMA_MES_ACTUAL] vs [SUMA_M-1].\n   - Si Actual > M-1: Genera el string HTML: <span style=\"color: green;\">▲</span>\n   - Si Actual < M-1: Genera el string HTML: <span style=\"color: red;\">▼</span>\n   - Si son iguales: Genera: <span style=\"color: gray;\">=</span>\n   - Inserta este string en el lugar de [FLECHA_HTML].\n\n  - Compara [SUMA_MES_ACTUAL] vs [SUMA_M-2].\n   - Si Actual > M-2: Genera el string HTML: <span style=\"color: green;\">▲</span>\n   - Si Actual < M-2: Genera el string HTML: <span style=\"color: red;\">▼</span>\n   - Si son iguales: Genera: <span style=\"color: gray;\">=</span>\n   - Inserta este string en el lugar de [FLECHA_2_HTML].\n\n - Compara [SUMA_MES_ACTUAL] vs [SUMA_M-3].\n   - Si Actual > M-3: Genera el string HTML: <span style=\"color: green;\">▲</span>\n   - Si Actual < M-3: Genera el string HTML: <span style=\"color: red;\">▼</span>\n   - Si son iguales: Genera: <span style=\"color: gray;\">=</span>\n   - Inserta este string en el lugar de [FLECHA_3_HTML].\n\n6. GENERAR HTML (Solo el código, sin explicaciones):\n   - Formatea TODOS los números grandes (Ventas, Contactados, Llamados) usando punto como separador de miles (ej: 2.178) antes de insertarlos en el HTML.\n   - Usa EXACTAMENTE esta estructura:\n\n<div style=\"font-family: Arial, sans-serif; color: #333; line-height: 1.6;\">\n  <h2 style=\"color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px;\">📊 Flash Report: [FECHA ACTUAL dd/mm/yyyy]</h2>\n  \n  <h3 style=\"margin-bottom: 5px;\">✅ Resultados Actividad (Día Hábil #[N])</h3>\n  <ul>\n    <li><b>Llamados:</b> [Llamados Hoy]</li>\n    <li><b>Contactados:</b> [Contactados Hoy]</li>\n    <li><b>Ventas:</b> [Ventas Hoy] (Conversión: <b>[Conversión Hoy]%</b>)</li>\n  </ul>\n\n  <h3 style=\"margin-bottom: 5px;\">🗓 Comparativa Acumulada (a día hábil [N])</h3>\n  <p style=\"font-size: 14px; color: #666; margin-top: 0;\">Comparando el ritmo de ventas de los primeros [N] días hábiles de cada mes:</p>\n  <ul>\n    <li><b>Este Mes:</b> [SUMA_MES_ACTUAL] ventas acumuladas</li>\n    <li>vs <b>Mes Pasado:</b> [SUMA_M-1] ventas [FLECHA_HTML]</li>\n    <li>vs <b>Hace 2 Meses:</b> [SUMA_M-2] ventas [FLECHA_2_HTML]</li>\n    <li>vs <b>Hace 3 Meses:</b> [SUMA_M-3] ventas [FLECHA_3_HTML]</li>\n  </ul>\n\n  <h3 style=\"margin-bottom: 5px;\">📈 Tendencia vs Trimestre</h3>\n  <p>\n   El ritmo actual ([SUMA_MES_ACTUAL]) está un <b>[PORCENTAJE]% [MEJOR/PEOR]</b> que el promedio de los meses anteriores al mismo día hábil.\n  </p>\n  \n  <hr style=\"border: 0; border-top: 1px solid #eee; margin-top: 20px;\">\n  <p style=\"font-size: 12px; color: #888;\">🤖 Reporte generado por Adrián Iglesias.</p>\n</div>\n\n\nDATOS:\n{{ JSON.stringify($json.data) }}\n"
+            }
+          ]
+        },
+        "builtInTools": {
+          "codeInterpreter": true
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        -320
+      ],
+      "id": "10ef4c08-759e-435f-ae66-e4033887f3a2",
+      "name": "Analista IA",
+      "credentials": {
+        "openAiApi": {
+          "id": "Pjrudyqvlp7o7HTh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "adrianiglesiasmunoz@gmail.com",
+        "subject": "Reporte de actividad y rendimiento",
+        "message": "={{ $json.output[0].content[0].text }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Adrian´s Assistant"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        -320
+      ],
+      "id": "ca615926-0eb1-4594-bb0c-0fd979d42ccd",
+      "name": "Envío Reporte por email",
+      "webhookId": "98b7cdb0-e10d-4c44-9557-c894971c37f6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kUPgIY2hntBNECA7",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Fuente: Ventas Diarias": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Fecha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Fecha": {
+      "main": [
+        [
+          {
+            "node": "Filtro Histórico (3M)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro Histórico (3M)": {
+      "main": [
+        [
+          {
+            "node": "Empaquetador JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empaquetador JSON": {
+      "main": [
+        [
+          {
+            "node": "Analista IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analista IA": {
+      "main": [
+        [
+          {
+            "node": "Envío Reporte por email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "ed6ea724-0e6e-40ad-9209-64f7777051e7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2228172b29521361ab6cd980d0a4f4f89de13d7cbfe2ba31a5619b083daffd99"
+  },
+  "id": "fyh0faruw4xJIzXy",
+  "tags": []
+}
